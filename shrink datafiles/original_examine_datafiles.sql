@@ -11,6 +11,7 @@ from dba_data_files f,
 dba_tablespaces t
 where f.tablespace_name = t.tablespace_name
 and t.status = 'ONLINE'
+and t.tablespace_name = 'TEST'
 order by f.tablespace_name,f.file_id;
 
 cursor c_freespace(v_file_id in number) is

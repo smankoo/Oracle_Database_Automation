@@ -3,34 +3,25 @@ select NVL(sum(bytes/1024),0) free_k from user_free_space where tablespace_name 
 
 select segment_name,bytes/1024/1024 size_m from dba_segments where tablespace_name = 'TEST';
 
-CREATE OR REPLACE PROCEDURE recreate_ts_test AS
-BEGIN
-	EXECUTE IMMEDIATE 'DROP TABLESPACE TEST INCLUDING CONTENTS AND DATAFILES';
-	EXECUTE IMMEDIATE 'CREATE TABLESPACE TEST DATAFILE ''/db/oradata/ora11g/ora11g/test01.dbf'' size 100m';
-	EXECUTE IMMEDIATE 'ALTER TABLESPACE TEST ADD DATAFILE ''/db/oradata/ora11g/ora11g/test02.dbf'' size 100m';
-END;
-/
 
 
 set serveroutput on
-
-create or replace procedure test_fragger AS
-BEGIN
-recreate_ts_test;
-FRAGMENT_TS('test');
-END;
-/
-
-exec recreate_ts_test;
-exec FRAGMENT_TS('test');
-
-
 exec test_fragger;
+
+create_fragged_test_tbs(DATAFILE_COUNT, DATAFILE_SIZE_M, fragmentation_type)
+exec create_fragged_test_tbs(3,500,'TABLESPACE');
+
 
 set serveroutput on
 exec ANALYZE_DATAFILE_SHRINKABILITY('TABLESPACE','ALL_TABLESPACES');
 exec ANALYZE_DATAFILE_SHRINKABILITY('TABLESPACE','TEST');
 exec ANALYZE_DATAFILE_SHRINKABILITY('DATAFILE','/db/oradata/ora11g/ora11g/test01.dbf');
+
+exec ANALYZE_DATAFILE_SHRINKABILITY('DATAFILE','/db/oradata/ora11g/ora11g/test01.dbf', '5m');
+
+
+exec ANALYZE_DATAFILE_SHRINKABILITY('DATAFILE','/db/oradata/ora11g/ora11g/test03.dbf');
+exec ANALYZE_DATAFILE_SHRINKABILITY('DATAFILE','/db/oradata/ora11g/ora11g/test03.dbf', '400m');
 
 
 CREATE TABLE invoices
