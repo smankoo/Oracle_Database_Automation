@@ -1,0 +1,46 @@
+set pages 50000 lines 600
+select NVL(sum(bytes/1024),0) free_k from user_free_space where tablespace_name = 'TEST';
+
+select segment_name,bytes/1024/1024 size_m from dba_segments where tablespace_name = 'TEST';
+
+CREATE OR REPLACE PROCEDURE recreate_ts_test AS
+BEGIN
+	EXECUTE IMMEDIATE 'DROP TABLESPACE TEST INCLUDING CONTENTS AND DATAFILES';
+	EXECUTE IMMEDIATE 'CREATE TABLESPACE TEST DATAFILE ''/db/oradata/ora11g/ora11g/test01.dbf'' size 100m';
+	EXECUTE IMMEDIATE 'ALTER TABLESPACE TEST ADD DATAFILE ''/db/oradata/ora11g/ora11g/test02.dbf'' size 100m';
+END;
+/
+
+
+set serveroutput on
+
+create or replace procedure test_fragger AS
+BEGIN
+recreate_ts_test;
+FRAGMENT_TS('test');
+END;
+/
+
+exec recreate_ts_test;
+exec FRAGMENT_TS('test');
+
+
+exec test_fragger;
+
+set serveroutput on
+exec ANALYZE_DATAFILE_SHRINKABILITY('TABLESPACE','ALL_TABLESPACES');
+exec ANALYZE_DATAFILE_SHRINKABILITY('TABLESPACE','TEST');
+exec ANALYZE_DATAFILE_SHRINKABILITY('DATAFILE','/db/oradata/ora11g/ora11g/test01.dbf');
+
+
+CREATE TABLE invoices
+(invoice_no    NUMBER NOT NULL,
+ invoice_date  DATE   NOT NULL,
+ comments      VARCHAR2(500))
+PARTITION BY RANGE (invoice_date)
+SUBPARTITION BY HASH (invoice_no)
+SUBPARTITIONS 8
+(PARTITION invoices_q1 VALUES LESS THAN (TO_DATE('01/04/2001', 'DD/MM/YYYY')),
+ PARTITION invoices_q2 VALUES LESS THAN (TO_DATE('01/07/2001', 'DD/MM/YYYY')),
+ PARTITION invoices_q3 VALUES LESS THAN (TO_DATE('01/09/2001', 'DD/MM/YYYY')),
+ PARTITION invoices_q4 VALUES LESS THAN (TO_DATE('01/01/2002', 'DD/MM/YYYY'));
